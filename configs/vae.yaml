@@ -1,0 +1,17 @@
+data_loader:
+  name: "Sprite"
+  input_size: 64
+  train_path: "datasets/sprites1_train"
+  val_path: "datasets/sprites1_val"
+train:
+  loss_function: "vae_loss"
+  loss_parameters:
+  batch_size: 32
+  latent_size: 8
+  in_shape: [3, 64, 64]
+  device: 'cuda:1'
+  learning_rate: 0.0003
+  num_epochs: 100
+  save_as: "vae_runs/trial1"
+  save_dir: "models/vae"
+  resume: False
