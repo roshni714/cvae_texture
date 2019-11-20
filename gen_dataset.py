@@ -18,7 +18,7 @@ def gen_sprite_dataset(mode="train"):
   ])
   if mode == 'train':
     goal_finding_scale = distribs.SetMinus(
-        distribs.Continuous('scale', 0.05, 0.15),
+        distribs.Continuous('scale', 0.20, 0.40),
         goal_finding_scale_test,
     )
     cluster_colors = distribs.Product(
@@ -42,7 +42,7 @@ def gen_sprite_dataset(mode="train"):
         common_factors,
         cluster_colors,
         shape,
-        distribs.Continuous('scale', 0.08, 0.12),
+        distribs.Continuous('scale', 0.20, 0.40),
     ])
     sprite_gen_list.append(
         sprite_generators.generate_sprites(factors, num_sprites=1))
@@ -56,9 +56,9 @@ def gen_sprite_dataset(mode="train"):
               image_size=(64, 64), anti_aliasing=5)
 
   print("Generating Sprites Dataset")
-  for i in range(2000):
+  for i in range(10000):
      sprites = sprite_gen()
      arr = drawer.render(sprites=sprites)
      img = Image.fromarray(arr, 'RGB')
-     img.save('datasets/sprites1_val/img_{}.png'.format(i)) 
+     img.save('datasets/sprites1_train/img_{}.png'.format(i)) 
 gen_sprite_dataset()

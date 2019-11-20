@@ -7,11 +7,11 @@ train:
   loss_function: "vae_loss"
   loss_parameters:
   batch_size: 32
-  latent_size: 8
+  latent_size: 10
   in_shape: [3, 64, 64]
   device: 'cuda:1'
   learning_rate: 0.0003
-  num_epochs: 100
-  save_as: "vae_runs/trial1"
-  save_dir: "models/vae"
+  num_epochs: 300
+  save_as: "latent_10_annealing"
+  save_dir: "models/latent_10_annealing"
   resume: False

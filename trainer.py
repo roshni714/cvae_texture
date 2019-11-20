@@ -47,7 +47,7 @@ class Trainer(object):
             input_var = data["image"].float().to(self._device)
 
             output, mean, logvar = model(input_var)
-            loss = criterion(output, input_var, mean, logvar)
+            loss = criterion(output, input_var, mean, logvar, epoch)
              # compute gradient and do optimization step
             optimizer.zero_grad()
             loss.backward()
@@ -97,7 +97,9 @@ class Trainer(object):
         if index is not None:
             cur_iter = cur_epoch * epoch_length + index
             writer.add_scalar('data/loss', losses.avg, cur_iter)
-
+            print(output[0].shape)
+            writer.add_image('orignal_image', input_var[0], cur_iter)
+            writer.add_image('output_image', output[0], cur_iter)
             print('Test:[{0}][{1}/{2}]\tLoss {loss.last_val:.4f} '
                   '({loss.avg:.4f})\t'.format(
                     cur_epoch, index, epoch_length, loss=losses))
