@@ -45,16 +45,17 @@ class Trainer(object):
                 # switch to train mode
             model.train()
             input_var = data["image"].float().to(self._device)
-
             output, mean, logvar = model(input_var)
             loss = criterion(output, input_var, mean, logvar, epoch)
              # compute gradient and do optimization step
             optimizer.zero_grad()
-            loss.backward()
+            loss["loss"].backward()
             optimizer.step()
 
-            losses.update(loss.item(), data["image"].size(0))
-            writer_train.add_scalar('data/loss', loss,
+            losses.update(loss["loss"].item(), data["image"].size(0))
+           
+            for key in loss: 
+                writer_train.add_scalar('data/{}'.format(key), loss[key].item(),
                                     i + len(train_loader) * epoch)
 
             print("Epoch: [{0}][{1}/{2}]\t Loss {loss.last_val:.4f} "
@@ -92,14 +93,17 @@ class Trainer(object):
             output, mean, logvar = model(input_var)
             loss = criterion(output, input_var, mean, logvar)
             # measure accuracy and record loss
-            losses.update(loss.item(), data["image"].size(0))
+            losses.update(loss["loss"].item(), data["image"].size(0))
 
         if index is not None:
             cur_iter = cur_epoch * epoch_length + index
-            writer.add_scalar('data/loss', losses.avg, cur_iter)
-            print(output[0].shape)
-            writer.add_image('orignal_image', input_var[0], cur_iter)
-            writer.add_image('output_image', output[0], cur_iter)
+            for key in loss: 
+                writer.add_scalar('data/{}'.format(key), loss[key].item(),
+                                    cur_iter)
+            writer.add_image('img', input_var[0], cur_iter)
+            writer.add_image('output', output[0], cur_iter)
+            if index % 1000 == 0: 
+                model.traverse(input_var, cur_iter)
             print('Test:[{0}][{1}/{2}]\tLoss {loss.last_val:.4f} '
                   '({loss.avg:.4f})\t'.format(
                     cur_epoch, index, epoch_length, loss=losses))

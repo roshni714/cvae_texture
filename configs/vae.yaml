@@ -12,6 +12,6 @@ train:
   device: 'cuda:1'
   learning_rate: 0.0003
   num_epochs: 300
-  save_as: "latent_10_annealing"
-  save_dir: "models/latent_10_annealing"
+  save_as: "traversal"
+  save_dir: "models/traversal"
   resume: False

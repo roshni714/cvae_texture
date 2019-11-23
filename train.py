@@ -11,6 +11,7 @@ import yaml
 from tensorboardX import SummaryWriter
 from sprite_dataloader import SpriteTrainTest
 from vae import VAE
+from spatial_broadcast import VAE_V2
 from modules import VAELoss
 from trainer import Trainer
 
@@ -26,10 +27,7 @@ def get_dataset(config):
     
     image_transforms = transforms.Compose([
         transforms.Resize((size, size)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225])
-    ])
+        transforms.ToTensor()])
     if data_loader["name"] == "Sprite":
         dataset = SpriteTrainTest(config['data_loader'], image_transforms)
         train_dataset = dataset.train
@@ -67,7 +65,7 @@ def main():
     conditional = False
     n_latent = config["train"]["latent_size"]
     in_shape = config["train"]["in_shape"]
-    model = VAE(in_shape=in_shape, n_latent=n_latent)  
+    model = VAE_V2(in_shape=in_shape, n_latent=n_latent)  
     model.to(device)
     print("Model name: {}".format("VAE"))
 
