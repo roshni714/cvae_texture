@@ -102,6 +102,7 @@ class Trainer(object):
                                     cur_iter)
             writer.add_image('img', input_var[0], cur_iter)
             writer.add_image('output', output[0], cur_iter)
+            writer.add_image('texture', data["texture"][0], cur_iter)
             if index % 1000 == 0: 
                 model.traverse(input_var, cur_iter)
             print('Test:[{0}][{1}/{2}]\tLoss {loss.last_val:.4f} '

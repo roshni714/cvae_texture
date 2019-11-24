@@ -1,0 +1,2 @@
+from sprite_dataloader import SpriteTrainTest
+from texture_dataloader import TextureTrainTest

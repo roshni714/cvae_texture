@@ -13,8 +13,8 @@ def gen_sprite_dataset(mode="train"):
   # train/test split for goal-finding object scales and clustering object colors
   goal_finding_scale_test = distribs.Continuous('scale', 0.08, 0.12)
   green_blue_colors = distribs.Product([
-      distribs.Continuous('c1', 64, 256, dtype='int32'),
-      distribs.Continuous('c2', 64, 256, dtype='int32'),
+      distribs.Continuous('c1', 256, 256, dtype='int32'),
+      distribs.Continuous('c2', 256, 256, dtype='int32'),
   ])
   if mode == 'train':
     goal_finding_scale = distribs.SetMinus(
@@ -22,7 +22,7 @@ def gen_sprite_dataset(mode="train"):
         goal_finding_scale_test,
     )
     cluster_colors = distribs.Product(
-        [distribs.Continuous('c0', 128, 256, dtype='int32'), green_blue_colors])
+        [distribs.Continuous('c0', 256, 256, dtype='int32'), green_blue_colors])
   elif mode == 'test':
     goal_finding_scale = goal_finding_scale_test
     cluster_colors = distribs.Product(
@@ -60,5 +60,5 @@ def gen_sprite_dataset(mode="train"):
      sprites = sprite_gen()
      arr = drawer.render(sprites=sprites)
      img = Image.fromarray(arr, 'RGB')
-     img.save('datasets/sprites1_train/img_{}.png'.format(i)) 
+     img.save('datasets/mask_train/img_{}.png'.format(i)) 
 gen_sprite_dataset()

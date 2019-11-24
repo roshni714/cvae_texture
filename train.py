@@ -9,10 +9,8 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import yaml
 from tensorboardX import SummaryWriter
-from sprite_dataloader import SpriteTrainTest
-from vae import VAE
-from spatial_broadcast import VAE_V2
-from modules import VAELoss
+from data_loaders import SpriteTrainTest, TextureTrainTest
+from modules import VAELoss, VAE, VAE_V2
 from trainer import Trainer
 
 DEFAULT_CONFIG = os.path.dirname(__file__) + "configs/vae.yaml"
@@ -30,6 +28,10 @@ def get_dataset(config):
         transforms.ToTensor()])
     if data_loader["name"] == "Sprite":
         dataset = SpriteTrainTest(config['data_loader'], image_transforms)
+        train_dataset = dataset.train
+        val_dataset = dataset.val
+    elif data_loader["name"] == "Texture":
+        dataset = TextureTrainTest(config['data_loader'], image_transforms)
         train_dataset = dataset.train
         val_dataset = dataset.val
     else:
