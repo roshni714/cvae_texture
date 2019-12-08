@@ -1,0 +1,24 @@
+data_loader:
+  name: "Texture"
+  input_size: 64
+  train_path: "datasets/mask_train"
+  val_path: "datasets/mask_val"
+  texture_path: "datasets/textures"
+  train_on_textures: False 
+train:
+  model: "hierarchical_vae"
+  model_params: 
+      in_shape: [3, 64, 64]
+      n_latent: 16
+      little_vae: "models/texture/checkpoint_123.tar"
+  loss_function: "vae_loss"
+  loss_parameters:
+  batch_size: 32
+  latent_size: 16
+  in_shape: [3, 64, 64]
+  device: 'cuda:1'
+  learning_rate: 0.0003
+  num_epochs: 300
+  save_as: "hierarchical_rotation"
+  save_dir: "models/hierarchical_rotation"
+  resume: False

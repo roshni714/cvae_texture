@@ -23,8 +23,8 @@ class TextureDataloader(Dataset):
         self.dataset_path = dataset_path
         self.texture_path = texture_path
 
-        self.random_crop = transforms.Compose([transforms.Resize((100, 100)), 
-                                              transforms.RandomCrop((64, 64))])
+        self.random_crop = transforms.Compose([transforms.Resize((64, 64)), 
+                                              transforms.RandomRotation(180)])
     def __len__(self):
         return len(os.listdir(self.dataset_path))
 
@@ -32,11 +32,12 @@ class TextureDataloader(Dataset):
         img_name = self.dataset_path + "/img_{}.png".format(idx)
         image = Image.fromarray(io.imread(img_name))
 
-        texture_name = self.texture_path + "/img_{}.jpg".format(random.randint(1, 3))
+        texture_name = self.texture_path + "/img_{}.jpg".format(2)
         texture = self.random_crop(Image.fromarray(io.imread(texture_name))) 
        
         if self.image_transform:
             image = torch.round(self.image_transform(image)).float()
+            cropped_texture = transforms.ToTensor()(transforms.RandomCrop((5, 5))(texture))
             texture = self.image_transform(texture)
 
         c, h, w = image.shape
@@ -48,7 +49,7 @@ class TextureDataloader(Dataset):
         after_mask = image * texture
         final_image = torch.where(image <= 1e-5, mean_color, after_mask)
         
-        sample = {'image': final_image, 'texture': texture}
+        sample = {'image': final_image, 'texture': cropped_texture}
 
         return sample
 

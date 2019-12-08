@@ -1,0 +1,21 @@
+data_loader:
+  name: "Texture"
+  input_size: 64
+  train_path: "datasets/mask_train"
+  val_path: "datasets/mask_val"
+  texture_path: "datasets/textures"
+  train_on_textures: True
+train:
+  model: "little_vae"
+  model_params:
+    in_shape: [3, 8, 8]
+    n_latent: 16
+  loss_function: "vae_loss"
+  loss_parameters:
+  batch_size: 32
+  device: 'cuda:1'
+  learning_rate: 0.0003
+  num_epochs: 300
+  save_as: "texture_kernel5"
+  save_dir: "models/texture_kernel5"
+  resume: False

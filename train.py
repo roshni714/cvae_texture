@@ -10,12 +10,12 @@ import torchvision.transforms as transforms
 import yaml
 from tensorboardX import SummaryWriter
 from data_loaders import SpriteTrainTest, TextureTrainTest
-from modules import VAELoss, VAE, VAE_V2
+from modules import VAELoss, VAE, VAE_V2, LittleVAE, HierarchicalVAE
 from trainer import Trainer
 
 DEFAULT_CONFIG = os.path.dirname(__file__) + "configs/vae.yaml"
 LOSS_FUNCTIONS = {"vae_loss": VAELoss}
-
+MODELS = {"little_vae": LittleVAE, "hierarchical_vae": HierarchicalVAE, "vae_v2": VAE_V2}
 
 def get_dataset(config):
     """ Returns the training data using the provided configuration."""
@@ -26,6 +26,8 @@ def get_dataset(config):
     image_transforms = transforms.Compose([
         transforms.Resize((size, size)),
         transforms.ToTensor()])
+
+    train_on_textures = False
     if data_loader["name"] == "Sprite":
         dataset = SpriteTrainTest(config['data_loader'], image_transforms)
         train_dataset = dataset.train
@@ -34,10 +36,11 @@ def get_dataset(config):
         dataset = TextureTrainTest(config['data_loader'], image_transforms)
         train_dataset = dataset.train
         val_dataset = dataset.val
+        train_on_textures = data_loader["train_on_textures"]
     else:
         sys.exit("Unknown data loader " + config['data_loader']["name"] + ".")
 
-    return train_dataset, val_dataset
+    return train_dataset, val_dataset, train_on_textures
 
 
 def main():
@@ -65,11 +68,11 @@ def main():
     # Build model architecture
     
     conditional = False
-    n_latent = config["train"]["latent_size"]
-    in_shape = config["train"]["in_shape"]
-    model = VAE_V2(in_shape=in_shape, n_latent=n_latent)  
+    model_params = config["train"]["model_params"]
+    model_name = config["train"]["model"]
+    model = MODELS[model_name](**model_params)  
     model.to(device)
-    print("Model name: {}".format("VAE"))
+    print("Model name: {}".format(model_name))
 
     # optionally resume from checkpoint
 
@@ -90,7 +93,7 @@ def main():
         start_epoch = 0
 
     # Get dataset
-    train_dataset, test_dataset = get_dataset(config)
+    train_dataset, test_dataset, train_on_textures = get_dataset(config)
     b_size = config["train"]["batch_size"] or 4
     validationloader = torch.utils.data.DataLoader(test_dataset,
                                                    batch_size=b_size,
@@ -129,8 +132,7 @@ def main():
     for epoch in range(start_epoch, num_epochs):
         trainer.train_epoch(
             trainloader, model, loss_function, criterion, optimizer,
-            epoch, writer_train, writer_val, validationloader,
-            config["data_loader"]["name"])
+            epoch, writer_train, writer_val, validationloader, train_on_textures)
         save_checkpoint(
             {'epoch': epoch + 1, 'state_dict': model.state_dict()},
             filename=os.path.join(config["train"]["save_dir"],

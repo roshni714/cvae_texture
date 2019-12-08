@@ -17,7 +17,7 @@ class Trainer(object):
 
     def train_epoch(self, train_loader, model, loss_function, criterion,
                     optimizer, epoch, writer_train, writer_val, val_loader,
-                    dataset_name):
+                    train_on_textures):
         """
             Method that trains the model for one epoch on the training set and
             reports losses to Tensorboard using the writer_train
@@ -36,23 +36,27 @@ class Trainer(object):
         losses = AverageMeter()
         model.train()
 
+        if train_on_textures:
+            input_name = "texture"
+        else:
+            input_name = "image"
         for i, data in enumerate(train_loader):
             if i % 20 == 0:
                 self.validate(self._device, val_loader, model, loss_function,
                                  criterion, writer_val, i, epoch,
-                                 len(train_loader), 0.01, dataset_name)
+                                 len(train_loader), 0.01, train_on_textures)
 
                 # switch to train mode
             model.train()
-            input_var = data["image"].float().to(self._device)
+            input_var = data[input_name].float().to(self._device)
             output, mean, logvar = model(input_var)
             loss = criterion(output, input_var, mean, logvar, epoch)
              # compute gradient and do optimization step
             optimizer.zero_grad()
             loss["loss"].backward()
             optimizer.step()
-
-            losses.update(loss["loss"].item(), data["image"].size(0))
+            loss["loss"]/=input_var.shape[0]
+            losses.update(loss["loss"].item(), 1)
            
             for key in loss: 
                 writer_train.add_scalar('data/{}'.format(key), loss[key].item(),
@@ -65,7 +69,7 @@ class Trainer(object):
 
     def validate(self, device, val_loader, model, loss_function, criterion, writer,
                  index=None, cur_epoch=None, epoch_length=None, eval_fraction=1,
-                 dataset_name="UPNAHeadPose"):
+                 train_on_textures=False):
         """
         Method that validates the model on the validation set and reports losses
         to Tensorboard using the writer
@@ -87,13 +91,19 @@ class Trainer(object):
 
         losses = AverageMeter()
         val_load_iter = iter(val_loader)
+        if train_on_textures:
+            input_name = "texture"
+        else:
+            input_name = "image"
+
         for i,data in enumerate(val_loader):
-            input_var = data["image"].float().to(device)
+            input_var = data[input_name].float().to(device)
                 # compute output
             output, mean, logvar = model(input_var)
             loss = criterion(output, input_var, mean, logvar)
             # measure accuracy and record loss
-            losses.update(loss["loss"].item(), data["image"].size(0))
+            loss["loss"]/=input_var.shape[0]
+            losses.update(loss["loss"].item(), 1)
 
         if index is not None:
             cur_iter = cur_epoch * epoch_length + index
@@ -102,9 +112,8 @@ class Trainer(object):
                                     cur_iter)
             writer.add_image('img', input_var[0], cur_iter)
             writer.add_image('output', output[0], cur_iter)
-            writer.add_image('texture', data["texture"][0], cur_iter)
-            if index % 1000 == 0: 
-                model.traverse(input_var, cur_iter)
+#            if index % 1000 == 0: 
+#                model.traverse(input_var, cur_iter)
             print('Test:[{0}][{1}/{2}]\tLoss {loss.last_val:.4f} '
                   '({loss.avg:.4f})\t'.format(
                     cur_epoch, index, epoch_length, loss=losses))
