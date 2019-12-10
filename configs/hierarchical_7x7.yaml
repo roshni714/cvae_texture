@@ -5,21 +5,27 @@ data_loader:
   val_path: "datasets/mask_val"
   texture_path: "datasets/textures"
   train_on_textures: False
-  crop: [5, 5]
+  crop: [7, 7]
 train:
-  model: "hierarchical_vae"
+  model: "hierarchical_vae_7x7"
+  padding: 3
+  stride: 1
+  kernel_size: [7, 7]
   model_params: 
       in_shape: [3, 64, 64]
       n_latent: 16
-      little_vae: "models/texture_5x5_multiple/checkpoint_66.tar"
+  little_vae_params:
+    n_latent: 16
+    in_shape: [3, 7, 7] 
+    path: "models/texture_7x7/checkpoint_60.tar"
   loss_function: "vae_loss"
   loss_parameters:
   batch_size: 32
   latent_size: 16
   in_shape: [3, 64, 64]
-  device: 'cuda:0'
+  device: 'cuda:1'
   learning_rate: 0.0003
   num_epochs: 300
-  save_as: "hierarchical_updated"
-  save_dir: "models/hierarchical_updated"
+  save_as: "hierarchical_7x7_cnn"
+  save_dir: "models/hierarchical_7x7_cnn"
   resume: False

@@ -4,21 +4,19 @@ data_loader:
   train_path: "datasets/mask_train"
   val_path: "datasets/mask_val"
   texture_path: "datasets/textures"
-  train_on_textures: False
-  crop: [5, 5] 
+  train_on_textures: True
+  crop: [5, 5]
 train:
-  model: "vae_v2"
-  model_params: 
-      in_shape: [3, 64, 64]
-      n_latent: 16
+  model: "little_vae_v2"
+  model_params:
+    in_shape: [3, 5, 5]
+    n_latent: 16
   loss_function: "vae_loss"
   loss_parameters:
   batch_size: 32
-  latent_size: 16
-  in_shape: [3, 64, 64]
   device: 'cuda:1'
-  learning_rate: 0.0003
+  learning_rate: 0.0005
   num_epochs: 300
-  save_as: "regular_vae"
-  save_dir: "models/regular_vae"
+  save_as: "texture_5x5_multiple"
+  save_dir: "models/texture_5x5_multiple"
   resume: False

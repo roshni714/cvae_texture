@@ -1,20 +1,83 @@
 import torch
 from utils import AverageMeter
+import torch.nn.functional as F
+
+def create_kernel(window_size= [7, 7], eps=1e-6):
+        r"""Creates a binary kernel to extract the patches. If the window size
+        is HxW will create a (H*W)xHxW kernel.
+        """
+        window_range = window_size[0] * window_size[1]
+        kernel = torch.zeros(window_range, window_range) + eps
+        for i in range(window_range):
+            kernel[i, i] += 1.0
+        return kernel.view(window_range, 1, window_size[0], window_size[1])
+
+def extract_image_patches(x, kernel_size, stride, padding):
+    batch_size, channels, height, width = x.shape
+    kernel = create_kernel(kernel_size).repeat(channels, 1, 1, 1)
+    kernel = kernel.to(x.device).to(x.dtype)
+    output_tmp = F.conv2d(
+            x,
+            kernel,
+            stride=stride,
+            padding=padding,
+            groups=channels)
+
+        # reshape the output tensor
+    output = output_tmp.view(
+            batch_size, channels, kernel_size[0], kernel_size[1], -1)
+    return output.permute(0, 4, 1, 2, 3)  # BxNxCxhxw
 
 
 class Trainer(object):
-    """ Trainer for Bingham Orientation Uncertainty estimation.
+    """
     Arguments:
         device (torch.device): The device on which the training will happen.
     """
-    def __init__(self, device, floating_point_type="float"):
+    def __init__(self, device, model_name, little_vae, kernel_size, stride, padding):
         self._device = device
+        self._model_name = model_name
+        self._little_vae = little_vae
+        self._padding = padding
+        self._kernel_size = kernel_size
+        self._stride = stride
 
     @staticmethod
     def adjust_learning_rate(optimizer):
         for param_group in optimizer.param_groups:
             param_group['lr'] = param_group['lr'] / 2
 
+    def generate_little_vae_encoding(self, input_var):
+        b, c, h, w = input_var.shape
+        patches = extract_image_patches(input_var, self._kernel_size, self._stride, self._padding)
+        next_layer_input = torch.zeros(input_var.shape[0], self._little_vae.n_latent, h+self._padding, w+self._padding).to(input_var.device).to(input_var.dtype)
+        division = torch.zeros(input_var.shape[0], self._little_vae.n_latent, h+self._padding, w+self._padding).to(input_var.device).to(input_var.dtype) #inputshape + kernel size
+        for i in range(h):
+            row = i+ self._padding #i + padding
+            for j in range(w):
+                col = j + self._padding #1 + padding
+                mean, _ = self._little_vae.encode(patches[:, i*h+j, :, :, :])
+                next_layer_input[:, :, row, col] += mean
+        input_rep = next_layer_input[:, :, self._padding: self._padding + h, self._padding: self._padding + h]
+        return input_rep
+
+
+    def generate_little_vae_decoding(self, latent_rep):
+        z = latent_rep
+        b, c, h, w = z.shape
+        division = torch.zeros(b, 3, h + self._kernel_size[0], w+ self._kernel_size[1])
+        to_decode = torch.zeros(b,3, h + self._kernel_size[0], w+ self._kernel_size[1])
+        for i in range(64):
+            row = i
+            for j in range(64):
+                col = j
+                recons = self._little_vae.decode(latent_rep[:,:, i, j]).detach().cpu()
+                to_decode[:, :, row:row+self._kernel_size[0], col:col+self._kernel_size[1]] += recons
+                division[:, :, row:row+self._kernel_size[0], col:col+self._kernel_size[1]] += torch.ones(recons.shape)
+        to_decode /= division
+        img = to_decode[:, :, self._padding: h + self._padding, self._padding: w + self._padding]
+        return img
+ 
     def train_epoch(self, train_loader, model, loss_function, criterion,
                     optimizer, epoch, writer_train, writer_val, val_loader,
                     train_on_textures):
@@ -28,8 +91,6 @@ class Trainer(object):
             Epoch: integer epoch number
             writer_train: A Tensorboard summary writer for reporting the average
                 loss while training.
-            writer_val: A Tensorboard summary writer for reporting the average
-                loss during validation.
             val_loader: A DataLoader that contains the shuffled validation set
             dataset_name: -
         """
@@ -41,16 +102,18 @@ class Trainer(object):
         else:
             input_name = "image"
         for i, data in enumerate(train_loader):
-            if i % 20 == 0:
-                self.validate(self._device, val_loader, model, loss_function,
-                                 criterion, writer_val, i, epoch,
-                                 len(train_loader), 0.01, train_on_textures)
-
-                # switch to train mode
+               # switch to train mode
             model.train()
             input_var = data[input_name].float().to(self._device)
-            output, mean, logvar = model(input_var)
-            loss = criterion(output, input_var, mean, logvar, epoch)
+            if "hierarchical" in self._model_name:
+                input_rep = self.generate_little_vae_encoding(input_var)
+                latent_rep, mean, logvar = model(input_rep)
+                output = self.generate_little_vae_decoding(latent_rep[0:1])
+                loss = criterion(latent_rep, input_rep, mean, logvar, epoch)
+            else:
+                output, mean, logvar = model(input_var)
+                loss = criterion(output, input_var, mean, logvar, epoch)
+
              # compute gradient and do optimization step
             optimizer.zero_grad()
             loss["loss"].backward()
@@ -58,62 +121,16 @@ class Trainer(object):
             loss["loss"]/=input_var.shape[0]
             losses.update(loss["loss"].item(), 1)
            
+            cur_iter = i + len(train_loader) * epoch
             for key in loss: 
-                writer_train.add_scalar('data/{}'.format(key), loss[key].item(),
-                                    i + len(train_loader) * epoch)
-
+                writer_train.add_scalar('data/{}'.format(key), loss[key].item(), cur_iter)
             print("Epoch: [{0}][{1}/{2}]\t Loss {loss.last_val:.4f} "
                   "({loss.avg:.4f})\t".format(
                     epoch, i, len(train_loader), loss=losses))
-
-
-    def validate(self, device, val_loader, model, loss_function, criterion, writer,
-                 index=None, cur_epoch=None, epoch_length=None, eval_fraction=1,
-                 train_on_textures=False):
-        """
-        Method that validates the model on the validation set and reports losses
-        to Tensorboard using the writer
-        device: A string that states whether we are using GPU ("cuda:0") or cpu
-        model: The model we are training
-        loss_function: String name of loss we are using (ie. "mse")
-        optimizer: The optimizer we are using
-        writer: A Tensorboard summary writer for reporting the average loss
-            during validation.
-        cur_epoch: integer epoch number representing the training epoch we are
-            currently on.
-        index: Refers to the batch number we are on within the training set
-        epoch_length: The number of batches in an epoch
-        val_loader: A DataLoader that contains the shuffled validation set
-        loss_parameters: Parameters passed on to the loss generation class.
-        """
-        # switch to evaluate mode
-        model.eval()
-
-        losses = AverageMeter()
-        val_load_iter = iter(val_loader)
-        if train_on_textures:
-            input_name = "texture"
-        else:
-            input_name = "image"
-
-        for i,data in enumerate(val_loader):
-            input_var = data[input_name].float().to(device)
-                # compute output
-            output, mean, logvar = model(input_var)
-            loss = criterion(output, input_var, mean, logvar)
-            # measure accuracy and record loss
-            loss["loss"]/=input_var.shape[0]
-            losses.update(loss["loss"].item(), 1)
-
-        if index is not None:
-            cur_iter = cur_epoch * epoch_length + index
-            for key in loss: 
-                writer.add_scalar('data/{}'.format(key), loss[key].item(),
-                                    cur_iter)
-            writer.add_image('img', input_var[0], cur_iter)
-            writer.add_image('output', output[0], cur_iter)
+            if i % 10 == 0:
+                writer_train.add_image('img', input_var[0], cur_iter)
+                writer_train.add_image('output_hierarchical', output[0], cur_iter)
+                writer_train.add_image('output_little_vae', self.generate_little_vae_decoding(input_rep[0:1])[0], cur_iter)
 #            if index % 1000 == 0: 
 #                model.traverse(input_var, cur_iter)
-            print('Test:[{0}][{1}/{2}]\tLoss {loss.last_val:.4f} '
-                  '({loss.avg:.4f})\t'.format(
-                    cur_epoch, index, epoch_length, loss=losses))
+            
