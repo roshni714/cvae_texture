@@ -1,32 +1,5 @@
 import torch
-from utils import AverageMeter
-import torch.nn.functional as F
-
-def create_kernel(window_size= [7, 7], eps=1e-6):
-        r"""Creates a binary kernel to extract the patches. If the window size
-        is HxW will create a (H*W)xHxW kernel.
-        """
-        window_range = window_size[0] * window_size[1]
-        kernel = torch.zeros(window_range, window_range) + eps
-        for i in range(window_range):
-            kernel[i, i] += 1.0
-        return kernel.view(window_range, 1, window_size[0], window_size[1])
-
-def extract_image_patches(x, kernel_size, stride, padding):
-    batch_size, channels, height, width = x.shape
-    kernel = create_kernel(kernel_size).repeat(channels, 1, 1, 1)
-    kernel = kernel.to(x.device).to(x.dtype)
-    output_tmp = F.conv2d(
-            x,
-            kernel,
-            stride=stride,
-            padding=padding,
-            groups=channels)
-
-        # reshape the output tensor
-    output = output_tmp.view(
-            batch_size, channels, kernel_size[0], kernel_size[1], -1)
-    return output.permute(0, 4, 1, 2, 3)  # BxNxCxhxw
+from utils import AverageMeter, extract_image_patches
 
 
 class Trainer(object):
@@ -34,8 +7,9 @@ class Trainer(object):
     Arguments:
         device (torch.device): The device on which the training will happen.
     """
-    def __init__(self, device, model_name, little_vae, kernel_size, stride, padding):
+    def __init__(self, device, model_name, experiment_name, little_vae, kernel_size, stride, padding):
         self._device = device
+        self._experiment_name = experiment_name
         self._model_name = model_name
         self._little_vae = little_vae
         self._padding = padding
@@ -128,9 +102,16 @@ class Trainer(object):
                   "({loss.avg:.4f})\t".format(
                     epoch, i, len(train_loader), loss=losses))
             if i % 10 == 0:
-                writer_train.add_image('img', input_var[0], cur_iter)
-                writer_train.add_image('output_hierarchical', output[0], cur_iter)
-                writer_train.add_image('output_little_vae', self.generate_little_vae_decoding(input_rep[0:1])[0], cur_iter)
-#            if index % 1000 == 0: 
-#                model.traverse(input_var, cur_iter)
-            
+                writer_train.add_image('imgs/input', input_var[0], cur_iter)
+                if "hierarchical" in self._model_name:
+                    writer_train.add_image('imgs/hierarchical_output', output[0], cur_iter)
+                    writer_train.add_image('imgs/little_vae_output', self.generate_little_vae_decoding(input_rep[0:1])[0], cur_iter)
+                else:
+                    writer_train.add_image('imgs/output', output[0], cur_iter)
+
+             if i %100 == 0:
+                 if "hierarchical" in self._model_name:
+                     model.traverse(input_var, self._experiment_name, self.little_vae, cur_iter)
+                 else:
+                     model.traverse(input_var, self._experiment_name, cur_iter)
+ 

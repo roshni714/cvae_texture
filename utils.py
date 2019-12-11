@@ -1,4 +1,72 @@
+import sys
 import torch
+from modules import LittleVAE
+from data_loaders import SpriteTrainTest, TextureTrainTest
+import torch.nn.functional as F
+import torchvision.transforms as transforms
+
+
+def create_kernel(window_size= [7, 7], eps=1e-6):
+        r"""Creates a binary kernel to extract the patches. If the window size
+        is HxW will create a (H*W)xHxW kernel.
+        """
+        window_range = window_size[0] * window_size[1]
+        kernel = torch.zeros(window_range, window_range) + eps
+        for i in range(window_range):
+            kernel[i, i] += 1.0
+        return kernel.view(window_range, 1, window_size[0], window_size[1])
+
+def extract_image_patches(x, kernel_size, stride, padding):
+    batch_size, channels, height, width = x.shape
+    kernel = create_kernel(kernel_size).repeat(channels, 1, 1, 1)
+    kernel = kernel.to(x.device).to(x.dtype)
+    output_tmp = F.conv2d(
+            x,
+            kernel,
+            stride=stride,
+            padding=padding,
+            groups=channels)
+
+        # reshape the output tensor
+    output = output_tmp.view(
+            batch_size, channels, kernel_size[0], kernel_size[1], -1)
+    return output.permute(0, 4, 1, 2, 3)  # BxNxCxhxw
+
+
+
+def get_dataset(config):
+    """ Returns the training data using the provided configuration."""
+
+    data_loader = config["data_loader"]
+    size = data_loader["input_size"]
+    
+    image_transforms = transforms.Compose([
+        transforms.Resize((size, size)),
+        transforms.ToTensor()])
+
+    train_on_textures = False
+    if data_loader["name"] == "Sprite":
+        dataset = SpriteTrainTest(config['data_loader'], image_transforms)
+        train_dataset = dataset.train
+        val_dataset = dataset.val
+    elif data_loader["name"] == "Texture":
+        dataset = TextureTrainTest(config['data_loader'], image_transforms)
+        train_dataset = dataset.train
+        val_dataset = dataset.val
+        train_on_textures = data_loader["train_on_textures"]
+    else:
+        sys.exit("Unknown data loader " + config['data_loader']["name"] + ".")
+
+    return train_dataset, val_dataset, train_on_textures
+
+def create_little_vae(in_shape, n_latent, path):
+        little_vae = LittleVAE(in_shape, n_latent)
+        checkpoint = torch.load(path)["state_dict"]
+        little_vae.load_state_dict(checkpoint)
+        little_vae.eval()
+        return little_vae
+ 
+
 
 #two methods from Nicholas Watters
 def images_to_grid(images,

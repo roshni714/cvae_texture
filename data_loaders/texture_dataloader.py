@@ -33,7 +33,7 @@ class TextureDataloader(Dataset):
         img_name = self.dataset_path + "/img_{}.png".format(idx)
         image = Image.fromarray(io.imread(img_name))
 
-        texture_name = self.texture_path + "/img_{}.jpg".format(13)
+        texture_name = self.texture_path + "/img_{}.jpg".format(2)
         texture = self.random_crop(Image.fromarray(io.imread(texture_name))) 
        
         if self.image_transform:

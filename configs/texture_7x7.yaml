@@ -20,6 +20,6 @@ train:
   device: 'cuda:1'
   learning_rate: 0.0003
   num_epochs: 300
-  save_as: "texture_7x7"
-  save_dir: "models/texture_7x7"
+  save_as: "texture_7x7_color"
+  save_dir: "models/texture_7x7_color"
   resume: False

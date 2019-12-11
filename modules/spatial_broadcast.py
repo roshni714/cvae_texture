@@ -76,7 +76,7 @@ class VAE_V2(nn.Module):
         return out, mean, logvar
 
 
-    def traverse(self, image, cur_iter, figure_width=10.5, num_cols=9, image_height=1.5):
+    def traverse(self, image, name, cur_iter, figure_width=10.5, num_cols=9, image_height=1.5):
         """
             Plot a traversal of the latent space.
     
@@ -128,4 +128,4 @@ class VAE_V2(nn.Module):
         
         plt.tight_layout()
         fig.subplots_adjust(wspace=0.04)
-        plt.savefig("traversals/traverse_{}.png".format(cur_iter))
+        plt.savefig("traversals/{}/traverse_{}.png".format(name, cur_iter))

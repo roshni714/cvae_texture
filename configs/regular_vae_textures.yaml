@@ -8,6 +8,9 @@ data_loader:
   crop: [5, 5] 
 train:
   model: "vae_v2"
+  padding: 3
+  stride: 1
+  kernel_size: [7, 7]
   model_params: 
       in_shape: [3, 64, 64]
       n_latent: 16

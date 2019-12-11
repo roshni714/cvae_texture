@@ -6,49 +6,15 @@ import os
 import sys
 import torch
 import torch.optim as optim
-import torchvision.transforms as transforms
 import yaml
 from tensorboardX import SummaryWriter
 from data_loaders import SpriteTrainTest, TextureTrainTest
 from modules import VAELoss, VAE, VAE_V2, LittleVAE, HierarchicalVAE, LittleVAE_V2, HierarchicalVAE_7x7
 from trainer import Trainer
-
+from utils import get_dataset, create_little_vae
 DEFAULT_CONFIG = os.path.dirname(__file__) + "configs/vae.yaml"
 LOSS_FUNCTIONS = {"vae_loss": VAELoss}
 MODELS = {"little_vae": LittleVAE, "hierarchical_vae": HierarchicalVAE, "vae_v2": VAE_V2, "little_vae_v2": LittleVAE_V2, "hierarchical_vae_7x7": HierarchicalVAE_7x7}
-
-def get_dataset(config):
-    """ Returns the training data using the provided configuration."""
-
-    data_loader = config["data_loader"]
-    size = data_loader["input_size"]
-    
-    image_transforms = transforms.Compose([
-        transforms.Resize((size, size)),
-        transforms.ToTensor()])
-
-    train_on_textures = False
-    if data_loader["name"] == "Sprite":
-        dataset = SpriteTrainTest(config['data_loader'], image_transforms)
-        train_dataset = dataset.train
-        val_dataset = dataset.val
-    elif data_loader["name"] == "Texture":
-        dataset = TextureTrainTest(config['data_loader'], image_transforms)
-        train_dataset = dataset.train
-        val_dataset = dataset.val
-        train_on_textures = data_loader["train_on_textures"]
-    else:
-        sys.exit("Unknown data loader " + config['data_loader']["name"] + ".")
-
-    return train_dataset, val_dataset, train_on_textures
-
-def create_little_vae(in_shape, n_latent, path):
-        little_vae = LittleVAE(in_shape, n_latent)
-        checkpoint = torch.load(path)["state_dict"]
-        little_vae.load_state_dict(checkpoint)
-        little_vae.eval()
-        return little_vae
- 
 
 def main():
     """ Loads arguments and starts training."""
@@ -75,10 +41,10 @@ def main():
     # Build model architecture
     
     conditional = False
-    little_vae_params = config["train"]["little_vae_params"]
     model_params = config["train"]["model_params"]
     model_name = config["train"]["model"]
     if "hierarchical" in model_name:
+        little_vae_params = config["train"]["little_vae_params"]
         little_vae = create_little_vae(**little_vae_params)
         little_vae.to(device)
     else:
@@ -143,8 +109,9 @@ def main():
     kernel_size = config["train"]["kernel_size"]
     padding = config["train"]["padding"]
     stride = config["train"]["stride"]
-    trainer = Trainer(device, model_name, little_vae, kernel_size, stride, padding)
+    experiment_name = config["train"]["save_as"]
 
+    trainer = Trainer(device, model_name, experiment_name, little_vae, kernel_size, stride, padding)
     for epoch in range(start_epoch, num_epochs):
         trainer.train_epoch(
             trainloader, model, loss_function, criterion, optimizer,
