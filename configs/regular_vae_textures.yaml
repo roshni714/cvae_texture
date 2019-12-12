@@ -21,7 +21,7 @@ train:
   in_shape: [3, 64, 64]
   device: 'cuda:1'
   learning_rate: 0.0003
-  num_epochs: 300
-  save_as: "regular_vae"
-  save_dir: "models/regular_vae"
+  num_epochs: 100
+  save_as: "regular_vae_red"
+  save_dir: "models/regular_vae_red"
   resume: False

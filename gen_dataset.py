@@ -56,9 +56,14 @@ def gen_sprite_dataset(mode="train"):
               image_size=(64, 64), anti_aliasing=5)
 
   print("Generating Sprites Dataset")
-  for i in range(10000):
-     sprites = sprite_gen()
-     arr = drawer.render(sprites=sprites)
-     img = Image.fromarray(arr, 'RGB')
-     img.save('datasets/mask_train/img_{}.png'.format(i)) 
+  with open('datasets/mask_test_2/position.csv', mode='w') as f: 
+     for i in range(5000):
+         sprites = sprite_gen()
+         x_pos = sprites[0]._position[0]
+         y_pos = sprites[0]._position[1]
+         arr = drawer.render(sprites=sprites)
+         img = Image.fromarray(arr, 'RGB')
+         img.save('datasets/mask_test_2/img_{}.png'.format(i)) 
+         f.write("{}, {} \n".format(x_pos, y_pos))
+
 gen_sprite_dataset()

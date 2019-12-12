@@ -15,6 +15,6 @@ class VAELoss():
             recon_loss += self.mse(output[i], input_var[i])
             kl_loss +=0.5 * torch.sum(torch.exp(logvar[i]) + mean[i]**2 - 1. - logvar[i])
         
-        loss = recon_loss + kl_loss
+        loss = recon_loss*10 + kl_loss 
 
         return {"loss": loss, "recon_loss": recon_loss/output.shape[0], "kl_loss": kl_loss/output.shape[0]}

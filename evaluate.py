@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 import yaml
 from tensorboardX import SummaryWriter
 from data_loaders import SpriteTrainTest, TextureTrainTest
-from modules import VAELoss, VAE, VAE_V2, LittleVAE, HierarchicalVAE, LittleVAE_V2, HierarchicalVAE_7x7
+from modules import VAELoss, VAE, VAE_V2, LittleVAE, HierarchicalVAE, LittleVAE_V2, HierarchicalVAE_7x7, RegressionModel
 from utils import get_dataset, create_little_vae
 from tester import Tester
 
@@ -62,7 +62,7 @@ def main():
     model.load_state_dict(checkpoint["state_dict"])
 
     # Get dataset
-    _, test_dataset, train_on_textures = get_dataset(config)
+    regression_training_data, test_dataset, train_on_textures = get_dataset(config)
     b_size = 10
     validationloader = torch.utils.data.DataLoader(test_dataset,
                                                    batch_size=b_size,
@@ -86,10 +86,13 @@ def main():
     padding = config["test"]["padding"]
     stride = config["test"]["stride"]
     experiment_name = config["test"]["model_path"].split('/')[1]
-
+    
+    reg_model = RegressionModel(16, 10, 2)
+    reg_model.to(device)
     tester = Tester(device, model_name, experiment_name, little_vae, kernel_size, stride, padding,
  validationloader, model, loss_function, criterion, train_on_textures)
-    tester.test()
+    reg_model = Tester.train_regression_model(reg_model, regression_training_data)
+    tester.test(reg_model)
 
 if __name__ == '__main__':
     main()

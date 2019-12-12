@@ -33,9 +33,16 @@ class HierarchicalVAE_7x7(nn.Module):
         self.decoder_mlp = nn.Sequential(
             nn.Linear(self.n_latent, 64*16),
             nn.ReLU(),
-            nn.Linear(64*16, 16*64*64),
+            nn.Linear(64*16, 5184),
             nn.ReLU(),
         )
+        self.decoder_cnn = nn.Sequential(nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=0),
+                                         nn.ReLU(),
+                                         nn.ConvTranspose2d(32, 32, kernel_size=4, stride=2, padding=2),
+                                         nn.ReLU(),
+                                         nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=2),
+                                         nn.ReLU(),
+                                         CenterCrop()) 
 
     def forward(self, x):
         mean, logvar = self.encode(x)
@@ -50,18 +57,20 @@ class HierarchicalVAE_7x7(nn.Module):
 
        
     def decode(self, z):
-        out = self.decoder_mlp(z)
-        out = out.view(z.size(0), 16, 64, 64)
+        out = self.decoder_mlp(z)        
+        out = out.view(z.size(0),64, 9, 9)
+        out = self.decoder_cnn(out)
         return out
  
     def encode(self, input_rep):
+        print(torch.mean(input_rep))
         res = self.encoder_cnn(input_rep) #padding + inputshape
         res  = self.encoder_mlp(res.view(res.size(0), -1))
         mean = res[:, :self.n_latent]
         logvar = res[:, self.n_latent:]
         return mean, logvar
 
-    def traverse(self, image, name, cur_iter, figure_width=10.5, num_cols=9, image_height=1.5):
+    def traverse(self, image, name, decoding_function, cur_iter, figure_width=10.5, num_cols=9, image_height=1.5):
         """
             Plot a traversal of the latent space.
     
@@ -91,7 +100,7 @@ class HierarchicalVAE_7x7(nn.Module):
                 else:
                      z[0][i] = float(z_i)
                 
-                x = self.decode(z).detach().cpu().numpy()
+                x = decoding_function(self.decode(z)).detach().cpu().numpy()
             
                 ax = fig.add_subplot(num_rows, num_cols, i * num_cols + j + 1)
                 ax.imshow(x[0].transpose())

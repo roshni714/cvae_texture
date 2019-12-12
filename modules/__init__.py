@@ -5,3 +5,4 @@ from .little_vae import LittleVAE
 from .hierarchical_vae import HierarchicalVAE
 from .hierarchical_vae_7x7 import HierarchicalVAE_7x7
 from .spatial_broadcast import VAE_V2
+from .regression_model import RegressionModel

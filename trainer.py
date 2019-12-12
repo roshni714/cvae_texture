@@ -109,9 +109,9 @@ class Trainer(object):
                 else:
                     writer_train.add_image('imgs/output', output[0], cur_iter)
 
-             if i %100 == 0:
-                 if "hierarchical" in self._model_name:
-                     model.traverse(input_var, self._experiment_name, self.little_vae, cur_iter)
-                 else:
-                     model.traverse(input_var, self._experiment_name, cur_iter)
+#            if i %100 == 0:
+#                if "hierarchical" in self._model_name:
+#                    model.traverse(input_var, self._experiment_name, self.little_vae, cur_iter)
+#                else:
+#                    model.traverse(input_var, self._experiment_name, cur_iter)
  

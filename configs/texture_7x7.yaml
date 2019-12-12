@@ -19,7 +19,7 @@ train:
   batch_size: 32
   device: 'cuda:1'
   learning_rate: 0.0003
-  num_epochs: 300
-  save_as: "texture_7x7_color"
-  save_dir: "models/texture_7x7_color"
+  num_epochs: 100
+  save_as: "texture_7x7_multiple"
+  save_dir: "models/texture_7x7_multiple"
   resume: False

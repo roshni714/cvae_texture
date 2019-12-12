@@ -17,15 +17,15 @@ train:
   little_vae_params:
     n_latent: 16
     in_shape: [3, 7, 7] 
-    path: "models/texture_7x7_color/checkpoint_60.tar"
+    path: "models/texture_7x7_red/checkpoint_56.tar"
   loss_function: "vae_loss"
   loss_parameters:
   batch_size: 32
   latent_size: 16
   in_shape: [3, 64, 64]
-  device: 'cuda:1'
+  device: 'cuda:0'
   learning_rate: 0.0003
   num_epochs: 300
-  save_as: "hierarchical_7x7_balanced_loss"
-  save_dir: "models/hierarchical_7x7_balanced_loss"
+  save_as: "hierarchical_red_test2"
+  save_dir: "models/hierarchical_red_test2"
   resume: False
