@@ -95,8 +95,6 @@ def main():
 
     writer_train = SummaryWriter(
         "vae_runs/{}/training".format(config["train"]["save_as"]))
-    writer_val = SummaryWriter(
-        "vae_runs/{}/validation".format(config["train"]["save_as"]))
 
     # Train the network
     num_epochs = config["train"]["num_epochs"] or 2
@@ -115,7 +113,7 @@ def main():
     for epoch in range(start_epoch, num_epochs):
         trainer.train_epoch(
             trainloader, model, loss_function, criterion, optimizer,
-            epoch, writer_train, writer_val, validationloader, train_on_textures)
+            epoch, writer_train, train_on_textures)
         save_checkpoint(
             {'epoch': epoch + 1, 'state_dict': model.state_dict()},
             filename=os.path.join(config["train"]["save_dir"],

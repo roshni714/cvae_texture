@@ -67,7 +67,9 @@ def main():
     validationloader = torch.utils.data.DataLoader(test_dataset,
                                                    batch_size=b_size,
                                                    shuffle=True)
-
+    regression_train = torch.utils.data.DataLoader(regression_training_data,
+                                                   batch_size = b_size,
+                                                   shuffle=True)
     print("batch size: {}".format(b_size))
     # Define loss function (criterion) and optimizer
     loss_function = config["test"]["loss_function"]
@@ -86,13 +88,12 @@ def main():
     padding = config["test"]["padding"]
     stride = config["test"]["stride"]
     experiment_name = config["test"]["model_path"].split('/')[1]
-    
-    reg_model = RegressionModel(16, 10, 2)
-    reg_model.to(device)
+#    reg_model = RegressionModel(16, 10, 3)
+#    reg_model.to(device) 
     tester = Tester(device, model_name, experiment_name, little_vae, kernel_size, stride, padding,
  validationloader, model, loss_function, criterion, train_on_textures)
-    reg_model = Tester.train_regression_model(reg_model, regression_training_data)
-    tester.test(reg_model)
+#    reg_model = tester.train_regression_model(reg_model, regression_train)
+    tester.test()
 
 if __name__ == '__main__':
     main()

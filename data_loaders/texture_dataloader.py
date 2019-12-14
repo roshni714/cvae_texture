@@ -13,25 +13,28 @@ class TextureTrainTest():
         val_path = config["val_path"]
         texture_path = config["texture_path"]
         crop_size = config["crop"]
-        self.train = TextureDataloader(train_path, texture_path, crop_size, image_transforms)
-        self.val = TextureDataloader(val_path, texture_path, crop_size, image_transforms)
+        textures = config["textures"]
+        self.train = TextureDataloader(train_path, texture_path, crop_size, textures, image_transforms)
+        self.val = TextureDataloader(val_path, texture_path, crop_size, textures, image_transforms)
 
 class TextureDataloader(Dataset):
     """
     Simple Dataloader for Sprite masks multipled by texture dataset
     """
-    def __init__(self, dataset_path, texture_path, crop_size, image_transform=None):
+    def __init__(self, dataset_path, texture_path, crop_size, textures, image_transform=None):
         self.image_transform = image_transform
         self.dataset_path = dataset_path
         self.texture_path = texture_path
         self.crop_size = crop_size
         self.random_crop = transforms.Compose([transforms.Resize((80, 80)),
                                                transforms.RandomCrop((64, 64))])
-        self.positions = {}
-        with open(self.dataset_path +"/position.csv") as f:
-            lines = f.readLines()
+        self.textures = textures
+        self.features = {}
+        with open(self.dataset_path +"/features.csv") as f:
+            lines = f.readlines()
+            print(len(lines))
             for i in range(len(os.listdir(self.dataset_path))-1):
-                self.positions[i] = [int(k) for k in lines[i].split(",")]
+                self.features[i] = [float(k) for k in lines[i].split(",")]
  
     def __len__(self):
         return len(os.listdir(self.dataset_path))-1
@@ -40,7 +43,7 @@ class TextureDataloader(Dataset):
         img_name = self.dataset_path + "/img_{}.png".format(idx)
         image = Image.fromarray(io.imread(img_name))
 
-        texture_name = self.texture_path + "/img_{}.jpg".format(np.random.choice([12, 11, 2]))
+        texture_name = self.texture_path + "/img_{}.jpg".format(np.random.choice(self.textures))
         texture = self.random_crop(Image.fromarray(io.imread(texture_name))) 
        
         if self.image_transform:
@@ -59,7 +62,7 @@ class TextureDataloader(Dataset):
             mean_color[i] *= avg_color_pattern[i]
         assert(torch.sum(torch.isnan(mean_color))==0)
         final_image = torch.where(after_mask <= 1e-5, mean_color, after_mask)
-        sample = {'image': final_image, 'texture': cropped_texture, 'position': self.positions[idx]}
+        sample = {'image': final_image, 'texture': cropped_texture, 'features': torch.tensor(self.features[idx])}
         assert(torch.sum(torch.isnan(final_image))==0)
         return sample
 

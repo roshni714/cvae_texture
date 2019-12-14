@@ -53,8 +53,7 @@ class Trainer(object):
         return img
  
     def train_epoch(self, train_loader, model, loss_function, criterion,
-                    optimizer, epoch, writer_train, writer_val, val_loader,
-                    train_on_textures):
+                    optimizer, epoch, writer_train, train_on_textures):
         """
             Method that trains the model for one epoch on the training set and
             reports losses to Tensorboard using the writer_train

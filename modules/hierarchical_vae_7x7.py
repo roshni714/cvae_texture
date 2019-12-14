@@ -63,7 +63,6 @@ class HierarchicalVAE_7x7(nn.Module):
         return out
  
     def encode(self, input_rep):
-        print(torch.mean(input_rep))
         res = self.encoder_cnn(input_rep) #padding + inputshape
         res  = self.encoder_mlp(res.view(res.size(0), -1))
         mean = res[:, :self.n_latent]
@@ -104,20 +103,20 @@ class HierarchicalVAE_7x7(nn.Module):
             
                 ax = fig.add_subplot(num_rows, num_cols, i * num_cols + j + 1)
                 ax.imshow(x[0].transpose())
-            
-                if i == 0 or j == j_min:
+             
+                if i == 0:
                     ax.set_title('{}'.format(round(z[0][i]), 2))
-            
-                if j == j_min:
-                    ax.set_xticks([], [])
-                    ax.set_yticks([], []) 
-                    color = 'mediumseagreen'
-                    width = 8
-                    for side in ['top', 'bottom', 'left', 'right']:
-                        ax.spines[side].set_color(color)
-                        ax.spines[side].set_linewidth(width)
+                 
+                if j==0:
+                    ax.set_ylabel(i, rotation=0)
+                    plt.setp(ax.get_yticklabels(), visible=False)
+                    ax.get_xaxis().set_visible(False)
+                    ax.tick_params(axis='both', which='both', length=0)
                 else:
-                    ax.axis('off')
+                    plt.setp(ax.get_yticklabels(), visible=False)
+                    ax.get_xaxis().set_visible(False)
+                    ax.tick_params(axis='both', which='both', length=0)
+            
             z[0][i] = float(z_i)
         plt.tight_layout()
         fig.subplots_adjust(wspace=0.04)

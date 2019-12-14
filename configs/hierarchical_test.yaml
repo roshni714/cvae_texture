@@ -1,11 +1,12 @@
 data_loader:
   name: "Texture"
   input_size: 64
-  train_path: "datasets/mask_train"
-  val_path: "datasets/mask_val"
+  train_path: "datasets/mask_train_2"
+  val_path: "datasets/mask_test_2"
   texture_path: "datasets/textures"
   train_on_textures: False
   crop: [7, 7]
+  textures: [2, 11, 12]
 test:
   model: "hierarchical_vae_7x7"
   padding: 3
@@ -17,11 +18,11 @@ test:
   little_vae_params:
     n_latent: 16
     in_shape: [3, 7, 7] 
-    path: "models/texture_7x7_color/checkpoint_56.tar"
+    path: "models/texture_7x7_multiple/checkpoint_56.tar"
   loss_function: "vae_loss"
   loss_parameters:
   batch_size: 32
   latent_size: 16
   in_shape: [3, 64, 64]
-  device: 'cuda:1'
-  model_path: "models/hierarchical_7x7_color/checkpoint_15.tar"
+  device: 'cuda:0'
+  model_path: "models/hierarchical_multiple/checkpoint_40.tar"
